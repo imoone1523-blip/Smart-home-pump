@@ -6,6 +6,8 @@
 // =====================================================
 const express = require("express");
 const path = require("path");
+const fs = require("fs");
+const STATE_FILE = path.join(__dirname, "state_data.json");   // จำสถานะลงไฟล์ (แบบของอาจารย์)
 
 const app = express();
 app.use(express.json());
@@ -16,7 +18,23 @@ let offAt = 0;                       // เวลาที่จะปิดเ�
 let onSince = 0;                     // เริ่มเปิดเมื่อไหร่
 let lastSeen = 0;                    // ESP32 ติดต่อมาล่าสุด
 const MAX_RUN_MIN = 60;              // เปิดค้างนานสุด 60 นาที แล้วปิดเอง (กันลืม)
-const log = [];
+let log = [];
+
+// ---------- โหลด/บันทึกสถานะลง state_data.json ----------
+function loadState() {
+  try {
+    const s = JSON.parse(fs.readFileSync(STATE_FILE, "utf8"));
+    if (s.pumpOn && s.offAt > Date.now()) {   // ถ้ายังไม่ถึงเวลาปิด ให้เดินต่อ
+      pumpOn = true; offAt = s.offAt; onSince = s.onSince || Date.now();
+    }
+    if (Array.isArray(s.log)) log = s.log.slice(0, 20);
+  } catch (e) { /* ไม่มีไฟล์ = เริ่มใหม่ */ }
+}
+function saveState() {
+  try { fs.writeFileSync(STATE_FILE, JSON.stringify({ pumpOn, offAt, onSince, log }, null, 2)); }
+  catch (e) { console.log("save error:", e.message); }
+}
+loadState();
 
 function thaiTime() {
   return new Date(Date.now() + 7 * 3600 * 1000).toISOString().substr(11, 8);
@@ -37,6 +55,7 @@ function setPump(on, minutes, who) {
     offAt = 0;
     addLog(`⏹ ${who}: ปิดปั๊ม`);
   }
+  saveState();
 }
 
 // เช็คตั้งเวลาทุกวินาที
