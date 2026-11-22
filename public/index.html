@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#050b18">
+<title>Smart Home - ปั๊มน้ำ</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#050b18;--card:rgba(255,255,255,.045);--edge:rgba(255,255,255,.08);
+    --text:#eaf2ff;--muted:#8193b2;--a1:#3b82f6;--a2:#06b6d4;--a3:#22d3ee;
+    --on1:#10b981;--red:#f43f5e;--amber:#f59e0b
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;min-height:100vh;color:var(--text);font-family:'Prompt','Inter',sans-serif;background:var(--bg);overflow-x:hidden}
+  .aurora{position:fixed;inset:-20%;z-index:0;pointer-events:none;filter:blur(70px);opacity:.55}
+  .aurora i{position:absolute;border-radius:50%;animation:float 18s ease-in-out infinite alternate;transition:background 1s}
+  .aurora i:nth-child(1){width:55vw;height:55vw;left:5%;top:0;background:#1d4ed8}
+  .aurora i:nth-child(2){width:45vw;height:45vw;right:0;top:20%;background:#0891b2;animation-delay:-6s}
+  .aurora i:nth-child(3){width:40vw;height:40vw;left:30%;bottom:0;background:#6d28d9;opacity:.6;animation-delay:-12s}
+  @keyframes float{to{transform:translate(6%,8%) scale(1.15)}}
+  body.running .aurora i:nth-child(1){background:#047857}
+  body.running .aurora i:nth-child(2){background:#0e7490}
+
+  .wrap{position:relative;z-index:1;max-width:520px;margin:auto;padding:22px 16px 40px}
+  header{display:flex;justify-content:space-between;align-items:center;gap:10px}
+  .hello{color:var(--muted);font-size:13px}
+  h1{margin:2px 0 0;font:800 26px 'Inter',sans-serif;letter-spacing:-.5px}
+  h1 span{background:linear-gradient(90deg,var(--a3),var(--a1));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .pill{display:flex;align-items:center;gap:8px;padding:8px 14px;border-radius:999px;background:var(--card);border:1px solid var(--edge);
+    backdrop-filter:blur(14px);font-size:12px;white-space:nowrap}
+  .pill i{width:8px;height:8px;border-radius:50%;background:var(--amber);box-shadow:0 0 10px var(--amber)}
+  .pill.ok i{background:var(--on1);box-shadow:0 0 12px var(--on1);animation:blink 1.6s infinite}
+  .pill.bad i{background:var(--red);box-shadow:0 0 10px var(--red)}
+  @keyframes blink{50%{opacity:.35}}
+
+  .card{background:var(--card);border:1px solid var(--edge);border-radius:28px;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+
+  .hero{margin-top:20px;padding:28px 20px 24px;text-align:center;position:relative;overflow:hidden}
+  .ringwrap{position:relative;width:min(260px,72vw);aspect-ratio:1;margin:0 auto}
+  .ring{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
+  .track{fill:none;stroke:rgba(255,255,255,.07);stroke-width:10}
+  .prog{fill:none;stroke:url(#g);stroke-width:10;stroke-linecap:round;transition:stroke-dashoffset .9s linear}
+  .power{position:absolute;inset:16%;border-radius:50%;border:0;cursor:pointer;display:grid;place-items:center;
+    background:radial-gradient(circle at 30% 25%,#1e293b,#0b1222);box-shadow:inset 0 2px 0 #ffffff14,0 20px 50px #0008;transition:.35s}
+  .power:active{transform:scale(.96)}
+  .power svg{width:34%;height:34%;stroke:#94a3b8;transition:.35s}
+  .running .power{background:radial-gradient(circle at 30% 25%,#34d399,#0e9f6e 55%,#047857);
+    box-shadow:0 0 0 10px #10b98122,0 0 60px #10b98188,inset 0 2px 0 #ffffff40}
+  .running .power svg{stroke:#fff}
+  .ripple{position:absolute;inset:16%;border-radius:50%;border:2px solid #34d399;opacity:0;pointer-events:none}
+  .running .ripple{animation:rip 2.4s ease-out infinite}
+  .running .ripple.b{animation-delay:1.2s}
+  @keyframes rip{from{transform:scale(1);opacity:.7}to{transform:scale(1.45);opacity:0}}
+  .status{margin-top:18px;font-size:30px;font-weight:700;color:var(--muted)}
+  .running .status{color:#fff}
+  .substatus{color:var(--muted);font-size:14px;margin-top:4px;min-height:20px}
+
+  .seg{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:20px;padding:5px;border-radius:16px;background:#ffffff08;border:1px solid var(--edge)}
+  .seg button{border:0;border-radius:12px;padding:11px 0;background:transparent;color:var(--muted);font:600 14px 'Prompt';cursor:pointer;transition:.2s}
+  .seg button.sel{background:linear-gradient(135deg,var(--a1),var(--a2));color:#fff;box-shadow:0 6px 18px #3b82f655}
+
+  .stats{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:14px}
+  .tile{padding:16px 18px}
+  .tile .k{color:var(--muted);font-size:12px}
+  .tile .v{margin-top:6px;font:700 26px 'Inter',sans-serif;font-variant-numeric:tabular-nums}
+
+  .tankcard{margin-top:14px;padding:18px;display:flex;align-items:center;gap:18px}
+  .tank{position:relative;width:74px;height:110px;border-radius:16px;border:2px solid #ffffff22;overflow:hidden;flex:none;background:#0b1222}
+  .liquid{position:absolute;left:0;right:0;bottom:0;height:40%;background:linear-gradient(180deg,#38bdf8,#2563eb);transition:height 1s}
+  .liquid::before,.liquid::after{content:"";position:absolute;left:0;top:-9px;width:200%;height:10px;
+    background:radial-gradient(circle at 10px 0,transparent 8px,#38bdf8 9px) repeat-x;background-size:20px 10px;animation:wave 2.5s linear infinite}
+  .liquid::after{top:-6px;opacity:.5;animation-duration:4s;animation-direction:reverse}
+  @keyframes wave{to{transform:translateX(-50%)}}
+  .tankinfo .k{color:var(--muted);font-size:12px}
+  .tankinfo .v{font:800 28px 'Inter',sans-serif}
+  .tankinfo .note{color:var(--muted);font-size:11px;margin-top:4px}
+
+  h2{margin:26px 4px 10px;font-size:13px;font-weight:600;color:var(--muted)}
+  .log{padding:6px 18px;max-height:230px;overflow:auto}
+  .row{display:flex;gap:12px;padding:12px 0;border-bottom:1px solid #ffffff0a;font-size:14px}
+  .row:last-child{border:0}
+  .row time{color:var(--muted);font:500 12px 'Inter';padding-top:2px;min-width:60px}
+  footer{text-align:center;color:#ffffff40;font-size:11px;margin-top:22px}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="aurora"><i></i><i></i><i></i></div>
+<div class="wrap" id="app">
+  <header>
+    <div><div class="hello" id="hello">สวัสดี</div><h1>Smart <span>Home</span></h1></div>
+    <div id="pill" class="pill"><i></i><span id="pillTxt">กำลังเชื่อมต่อ</span></div>
+  </header>
+
+  <section class="card hero">
+    <div class="ringwrap">
+      <svg class="ring" viewBox="0 0 200 200" aria-hidden="true">
+        <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#34d399"/><stop offset="1" stop-color="#22d3ee"/></linearGradient></defs>
+        <circle class="track" cx="100" cy="100" r="90"/>
+        <circle class="prog" id="prog" cx="100" cy="100" r="90" stroke-dasharray="565.5" stroke-dashoffset="565.5"/>
+      </svg>
+      <span class="ripple"></span><span class="ripple b"></span>
+      <button class="power" id="btn" aria-label="เปิดปิดปั๊ม">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round"><path d="M12 3v8"/><path d="M6.3 6.8a8 8 0 1 0 11.4 0"/></svg>
+      </button>
+    </div>
+    <div class="status" id="status">ปั๊มน้ำปิดอยู่</div>
+    <div class="substatus" id="sub">เลือกเวลา แล้วแตะปุ่มเพื่อเปิดปั๊ม</div>
+    <div class="seg" id="seg">
+      <button data-m="5">5 นาที</button><button data-m="10" class="sel">10 นาที</button>
+      <button data-m="30">30 นาที</button><button data-m="60">60 นาที</button>
+    </div>
+  </section>
+
+  <div class="stats">
+    <div class="card tile"><div class="k">⏱ เปิดมาแล้ว</div><div class="v" id="run">00:00</div></div>
+    <div class="card tile"><div class="k">⏳ ปิดเองใน</div><div class="v" id="left">--:--</div></div>
+  </div>
+
+  <div class="card tankcard">
+    <div class="tank"><div class="liquid" id="liquid"></div></div>
+    <div class="tankinfo">
+      <div class="k">💧 ระดับน้ำในถัง</div>
+      <div class="v" id="lvl">40%</div>
+      <div class="note">ภาพจำลอง (ยังไม่มีเซ็นเซอร์วัดระดับน้ำ)</div>
+    </div>
+  </div>
+
+  <h2>กิจกรรมล่าสุด</h2>
+  <div class="card log" id="log"></div>
+  <footer>ESP32 · Node.js · Render</footer>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const C = 565.5;
+let state = null, minutes = 10, total = 600;
+
+const h = new Date(Date.now()+7*3600e3).getUTCHours();
+$('hello').textContent = h < 12 ? 'สวัสดีตอนเช้า ☀️' : h < 18 ? 'สวัสดีตอนบ่าย 🌤' : 'สวัสดีตอนเย็น 🌙';
+
+document.querySelectorAll('#seg button').forEach(b => b.onclick = () => {
+  minutes = +b.dataset.m;
+  document.querySelectorAll('#seg button').forEach(x => x.classList.toggle('sel', x === b));
+});
+
+async function post(on){
+  try{
+    const r = await fetch('/api/pump',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({on, minutes})});
+    if (on) total = minutes*60;
+    if (navigator.vibrate) navigator.vibrate(30);
+    render(await r.json());
+  }catch(e){ $('pillTxt').textContent='เซิร์ฟเวอร์ไม่ตอบ'; }
+}
+$('btn').onclick = () => post(!(state && state.pumpOn));
+
+const fmt = s => String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');
+
+function render(s){
+  state = s;
+  $('pill').className = 'pill ' + (s.esp32 ? 'ok' : 'bad');
+  $('pillTxt').textContent = s.esp32 ? 'บอร์ดออนไลน์' : 'บอร์ดออฟไลน์';
+  $('app').classList.toggle('running', s.pumpOn);
+  document.body.classList.toggle('running', s.pumpOn);
+  $('status').textContent = s.pumpOn ? 'ปั๊มน้ำกำลังทำงาน' : 'ปั๊มน้ำปิดอยู่';
+  $('sub').textContent = s.pumpOn ? 'แตะปุ่มอีกครั้งเพื่อหยุดปั๊ม' : 'เลือกเวลา แล้วแตะปุ่มเพื่อเปิดปั๊ม';
+  $('run').textContent = s.pumpOn ? fmt(s.runSeconds) : '00:00';
+  $('left').textContent = s.pumpOn ? fmt(s.secondsLeft) : '--:--';
+  if (s.pumpOn) total = Math.max(total, s.runSeconds + s.secondsLeft);
+  const frac = s.pumpOn && total ? s.secondsLeft/total : 0;
+  $('prog').style.strokeDashoffset = C*(1-frac);
+  const lvl = s.pumpOn ? Math.min(95, 40 + Math.floor(s.runSeconds/6)) : 40;   // ภาพจำลอง
+  $('liquid').style.height = lvl+'%'; $('lvl').textContent = lvl+'%';
+  $('log').innerHTML = s.log.map(l => `<div class="row"><time>${l.t}</time><span>${l.msg}</span></div>`).join('');
+}
+
+async function load(){
+  try{ render(await (await fetch('/api/state')).json()); }
+  catch(e){ $('pill').className='pill'; $('pillTxt').textContent='กำลังเชื่อมต่อ'; }
+}
+load(); setInterval(load, 1000);
+</script>
+</body>
+</html>

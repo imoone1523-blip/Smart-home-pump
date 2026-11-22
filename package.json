@@ -1,0 +1,15 @@
+{
+  "name": "smart-pump-esp32",
+  "version": "1.0.0",
+  "description": "Smart Pump controller: web + ESP32 relays",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "express": "^4.21.2"
+  }
+}
